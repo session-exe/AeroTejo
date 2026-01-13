@@ -86,7 +86,7 @@ A aplicação estará disponível em:
 ### Credenciais de Acesso Iniciais
 
 **Administrador:**
-- E-mail: `admin@aerotejo.pt`
+- E-mail: admin@aerotejo.pt
 - Password: `admin123`
 
 **Passageiro de Teste:**

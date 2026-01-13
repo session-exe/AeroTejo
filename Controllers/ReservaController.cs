@@ -4,6 +4,9 @@ using AeroTejo.Models;
 using AeroTejo.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace AeroTejo.Controllers
 {
@@ -16,65 +19,38 @@ namespace AeroTejo.Controllers
             _context = context;
         }
 
-        // ==================== PASSO 1: CONFIGURAR (Assentos e Passageiros) ====================
-
         [HttpGet]
         public async Task<IActionResult> Configure()
         {
-            // 1. Verificar Login
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue)
-            {
-                TempData["ErrorMessage"] = "Precisa de fazer login para continuar.";
-                return RedirectToAction("Login", "Account");
-            }
+            if (!userId.HasValue) return RedirectToAction("Login", "Account");
 
-            // 2. Verificar Voo Selecionado
             var vooId = HttpContext.Session.GetInt32("SelectedVooId");
-            if (!vooId.HasValue)
-            {
-                TempData["ErrorMessage"] = "Selecione um voo primeiro.";
-                return RedirectToAction("Index", "Home");
-            }
+            if (!vooId.HasValue) return RedirectToAction("Index", "Home");
 
-            // 3. Carregar Voo e Assentos
-            var voo = await _context.Voos
-                .Include(v => v.Assentos)
-                .FirstOrDefaultAsync(v => v.Id == vooId.Value);
-
+            var voo = await _context.Voos.Include(v => v.Assentos).FirstOrDefaultAsync(v => v.Id == vooId.Value);
             if (voo == null) return NotFound();
 
-            // 4. Carregar Hotel (Opcional)
             var hotelId = HttpContext.Session.GetInt32("SelectedHotelId");
             Hotel? hotel = null;
-            if (hotelId.HasValue)
-            {
-                hotel = await _context.Hoteis.FindAsync(hotelId.Value);
-            }
+            if (hotelId.HasValue) hotel = await _context.Hoteis.FindAsync(hotelId.Value);
 
-            // 5. Preparar ViewModel com DATAS INICIAIS CORRETAS
             var viewModel = new ReservaConfigViewModel
             {
                 VooId = voo.Id,
                 Voo = voo,
                 HotelId = hotelId,
                 Hotel = hotel,
-
-                // INICIALIZAÇÃO CORRETA DAS DATAS (Para o calendário abrir no dia certo)
                 DataCheckIn = voo.DataHora.Date,
                 DataCheckOut = voo.DataHora.Date.AddDays(1),
-
-                // Carregar dropdowns
+                // CORREÇÃO AQUI: Ordenar por ID antes de selecionar o texto
                 AssentosDisponiveis = voo.Assentos
                     .Where(a => !a.IsOccupied)
+                    .OrderBy(a => a.Id)
                     .Select(a => a.NumeroAssento)
-                    .OrderBy(a => a)
                     .ToList(),
-
-                // Iniciar com 1 passageiro vazio
                 Passageiros = new List<PassageiroInfo> { new PassageiroInfo() }
             };
-
             return View(viewModel);
         }
 
@@ -82,42 +58,27 @@ namespace AeroTejo.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Configure(ReservaConfigViewModel model)
         {
-            // Carregar voo para validações
             var voo = await _context.Voos.FindAsync(model.VooId);
+            if (!ModelState.IsValid) return await ReloadConfigureView(model);
 
-            // 1. Validação do Modelo
-            if (!ModelState.IsValid)
-            {
-                return await ReloadConfigureView(model);
-            }
-
-            // 2. Validação: Assentos Duplicados
             var assentosEscolhidos = model.Passageiros.Select(p => p.AssentoSelecionado).ToList();
             if (assentosEscolhidos.Count != assentosEscolhidos.Distinct().Count())
             {
-                ModelState.AddModelError("", "Não pode selecionar o mesmo assento para passageiros diferentes.");
-                return await ReloadConfigureView(model);
+                ModelState.AddModelError("", "Assentos duplicados."); return await ReloadConfigureView(model);
             }
 
-            // 3. Validação: Datas (Hotel)
             if (model.HotelId.HasValue)
             {
-                // Check-in anterior ao voo?
                 if (model.DataCheckIn.HasValue && model.DataCheckIn.Value.Date < voo!.DataHora.Date)
                 {
-                    ModelState.AddModelError("DataCheckIn", "O check-in não pode ser feito antes da data de chegada do voo.");
-                    return await ReloadConfigureView(model);
+                    ModelState.AddModelError("DataCheckIn", "Check-in inválido."); return await ReloadConfigureView(model);
                 }
-
-                // Check-out antes do check-in?
                 if (model.DataCheckOut <= model.DataCheckIn)
                 {
-                    ModelState.AddModelError("DataCheckOut", "A data de check-out deve ser posterior à de check-in.");
-                    return await ReloadConfigureView(model);
+                    ModelState.AddModelError("DataCheckOut", "Check-out inválido."); return await ReloadConfigureView(model);
                 }
             }
 
-            // 4. Guardar na Sessão
             var passageirosJson = JsonSerializer.Serialize(model.Passageiros);
             HttpContext.Session.SetString("Reserva_Passageiros", passageirosJson);
             HttpContext.Session.SetInt32("Reserva_VooId", model.VooId);
@@ -128,15 +89,10 @@ namespace AeroTejo.Controllers
                 HttpContext.Session.SetString("Reserva_CheckIn", model.DataCheckIn?.ToString("yyyy-MM-dd") ?? "");
                 HttpContext.Session.SetString("Reserva_CheckOut", model.DataCheckOut?.ToString("yyyy-MM-dd") ?? "");
             }
-            else
-            {
-                HttpContext.Session.Remove("Reserva_HotelId");
-            }
+            else { HttpContext.Session.Remove("Reserva_HotelId"); }
 
             return RedirectToAction(nameof(Checkout));
         }
-
-        // ==================== PASSO 2: CHECKOUT ====================
 
         [HttpGet]
         public async Task<IActionResult> Checkout()
@@ -149,41 +105,26 @@ namespace AeroTejo.Controllers
 
             var voo = await _context.Voos.FindAsync(vooId.Value);
             var hotelId = HttpContext.Session.GetInt32("Reserva_HotelId");
+            var passageiros = JsonSerializer.Deserialize<List<PassageiroInfo>>(HttpContext.Session.GetString("Reserva_Passageiros")!) ?? new();
 
-            // Ler Passageiros
-            var passageirosJson = HttpContext.Session.GetString("Reserva_Passageiros");
-            var passageiros = string.IsNullOrEmpty(passageirosJson)
-                ? new List<PassageiroInfo>()
-                : JsonSerializer.Deserialize<List<PassageiroInfo>>(passageirosJson);
-
-            int numPassageiros = passageiros?.Count ?? 1;
-
-            // Calcular Total
-            decimal valorTotal = voo!.Preco * numPassageiros;
+            decimal total = voo!.Preco * passageiros.Count;
             Hotel? hotel = null;
-            int numNoites = 0;
+            int noites = 0;
 
             if (hotelId.HasValue)
             {
                 hotel = await _context.Hoteis.FindAsync(hotelId.Value);
                 if (hotel != null)
                 {
-                    DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckIn"), out DateTime cIn);
-                    DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckOut"), out DateTime cOut);
-
-                    numNoites = (cOut - cIn).Days;
-                    if (numNoites < 1) numNoites = 1;
-
-                    valorTotal += hotel.PrecoPorNoite * numNoites;
+                    DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckIn"), out DateTime inD);
+                    DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckOut"), out DateTime outD);
+                    noites = (outD - inD).Days; if (noites < 1) noites = 1;
+                    total += hotel.PrecoPorNoite * noites;
                 }
             }
 
-            ViewBag.Voo = voo;
-            ViewBag.Hotel = hotel;
-            ViewBag.ValorTotal = valorTotal;
-            ViewBag.TotalPassageiros = numPassageiros;
-            ViewBag.NumNoites = numNoites;
-
+            ViewBag.Voo = voo; ViewBag.Hotel = hotel; ViewBag.ValorTotal = total;
+            ViewBag.TotalPassageiros = passageiros.Count; ViewBag.NumNoites = noites;
             return View();
         }
 
@@ -196,88 +137,152 @@ namespace AeroTejo.Controllers
             var userId = HttpContext.Session.GetInt32("UserId");
             var vooId = HttpContext.Session.GetInt32("Reserva_VooId");
             var hotelId = HttpContext.Session.GetInt32("Reserva_HotelId");
-            var passageirosJson = HttpContext.Session.GetString("Reserva_Passageiros");
+            var passageiros = JsonSerializer.Deserialize<List<PassageiroInfo>>(HttpContext.Session.GetString("Reserva_Passageiros")!) ?? new();
 
-            if (!userId.HasValue || !vooId.HasValue) return RedirectToAction("Index", "Home");
-
-            var passageiros = JsonSerializer.Deserialize<List<PassageiroInfo>>(passageirosJson!) ?? new();
-
-            // 1. Ocupar Assentos
+            // Ocupar Assentos
             foreach (var p in passageiros)
             {
-                var assento = await _context.Assentos
-                    .FirstOrDefaultAsync(a => a.VooId == vooId && a.NumeroAssento == p.AssentoSelecionado);
+                var assento = await _context.Assentos.FirstOrDefaultAsync(a => a.VooId == vooId && a.NumeroAssento == p.AssentoSelecionado);
                 if (assento != null) assento.IsOccupied = true;
             }
 
-            // 2. Calcular Total Final
+            // Calcular Total e Datas
             var voo = await _context.Voos.FindAsync(vooId);
-            decimal valorTotal = voo!.Preco * passageiros.Count;
-            DateTime cIn = DateTime.Now, cOut = DateTime.Now;
+            decimal total = voo!.Preco * passageiros.Count;
+            DateTime inD = voo.DataHora.Date, outD = voo.DataHora.Date;
 
             if (hotelId.HasValue)
             {
                 var hotel = await _context.Hoteis.FindAsync(hotelId);
-                DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckIn"), out cIn);
-                DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckOut"), out cOut);
-                int dias = (cOut - cIn).Days;
-                if (dias < 1) dias = 1;
-                valorTotal += hotel!.PrecoPorNoite * dias;
+                DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckIn"), out inD);
+                DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckOut"), out outD);
+                int dias = (outD - inD).Days; if (dias < 1) dias = 1;
+                total += hotel!.PrecoPorNoite * dias;
             }
 
-            // 3. Criar Reserva
             var reserva = new Reserva
             {
                 UserId = userId.Value,
                 VooId = vooId.Value,
                 HotelId = hotelId,
-                DataCheckIn = cIn,
-                DataCheckOut = cOut,
-                ValorTotal = valorTotal,
+                DataCheckIn = inD,
+                DataCheckOut = outD,
+                ValorTotal = total,
                 DataReserva = DateTime.Now,
                 NumeroAssento = "Múltiplos",
-                DadosPassageiros = passageirosJson
+                DadosPassageiros = JsonSerializer.Serialize(passageiros)
             };
-
             _context.Reservas.Add(reserva);
             await _context.SaveChangesAsync();
 
-            // 4. Criar Faturação
-            var faturacao = new Faturacao
+            _context.Faturacoes.Add(new Faturacao
             {
                 ReservaId = reserva.Id,
                 NIF = model.NIF ?? "N/A",
                 Morada = model.Morada,
                 Nome = model.Nome,
                 DataEmissao = DateTime.Now
-            };
-
-            _context.Faturacoes.Add(faturacao);
+            });
             await _context.SaveChangesAsync();
 
-            // 5. Limpar Sessão
-            HttpContext.Session.Remove("Reserva_VooId");
-            HttpContext.Session.Remove("Reserva_HotelId");
-            HttpContext.Session.Remove("Reserva_Passageiros");
-            HttpContext.Session.Remove("SelectedVooId");
-            HttpContext.Session.Remove("SelectedHotelId");
-            HttpContext.Session.Remove("Reserva_CheckIn");
+            // Limpar Sessão
+            HttpContext.Session.Remove("Reserva_VooId"); HttpContext.Session.Remove("Reserva_HotelId");
+            HttpContext.Session.Remove("Reserva_Passageiros"); HttpContext.Session.Remove("SelectedVooId");
+            HttpContext.Session.Remove("SelectedHotelId"); HttpContext.Session.Remove("Reserva_CheckIn");
             HttpContext.Session.Remove("Reserva_CheckOut");
 
             return RedirectToAction(nameof(Confirmation), new { id = reserva.Id });
         }
 
-        // ==================== AUXILIARES ====================
+        // ==================== NOVO: CANCELAR RESERVA (Passageiro) ====================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancelar(int id)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return RedirectToAction("Login", "Account");
+
+            var reserva = await _context.Reservas.FindAsync(id);
+
+            // Só pode cancelar a própria reserva
+            if (reserva == null || reserva.UserId != userId.Value) return NotFound();
+
+            // Libertar Assentos
+            if (!string.IsNullOrEmpty(reserva.DadosPassageiros))
+            {
+                var passageiros = JsonSerializer.Deserialize<List<PassageiroInfo>>(reserva.DadosPassageiros);
+                if (passageiros != null)
+                {
+                    foreach (var p in passageiros)
+                    {
+                        var assento = await _context.Assentos
+                            .FirstOrDefaultAsync(a => a.VooId == reserva.VooId && a.NumeroAssento == p.AssentoSelecionado);
+                        if (assento != null) assento.IsOccupied = false;
+                    }
+                }
+            }
+
+            _context.Reservas.Remove(reserva);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Reserva cancelada com sucesso.";
+            return RedirectToAction(nameof(MinhasReservas));
+        }
+
+        // ==================== PDF e Auxiliares ====================
+        public async Task<IActionResult> DownloadFatura(int id)
+        {
+            var reserva = await _context.Reservas.Include(r => r.Voo).Include(r => r.Hotel).Include(r => r.User).Include(r => r.Faturacao).FirstOrDefaultAsync(r => r.Id == id);
+            if (reserva == null) return NotFound();
+
+            // Permitir download se for Admin OU o dono da reserva
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var role = HttpContext.Session.GetString("UserRole");
+            if (role != "Administrador" && reserva.UserId != userId) return Forbid();
+
+            var passageiros = JsonSerializer.Deserialize<List<PassageiroInfo>>(reserva.DadosPassageiros ?? "[]");
+            int qtd = passageiros?.Count ?? 1;
+
+            var document = Document.Create(container => {
+                container.Page(page => {
+                    page.Size(PageSizes.A4); page.Margin(2, Unit.Centimetre); page.PageColor(Colors.White); page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+                    page.Header().Row(row => {
+                        row.RelativeItem().Column(col => { col.Item().Text("AeroTejo").SemiBold().FontSize(24).FontColor(Colors.DeepPurple.Medium); col.Item().Text("Lisboa, Portugal"); });
+                        row.ConstantItem(150).Column(col => { col.Item().Text($"Fatura #{reserva.Id}").SemiBold(); col.Item().Text($"{reserva.DataReserva:d}"); });
+                    });
+                    page.Content().PaddingVertical(1, Unit.Centimetre).Column(col => {
+                        col.Item().Text($"Cliente: {reserva.Faturacao?.Nome ?? "N/A"} | NIF: {reserva.Faturacao?.NIF ?? "N/A"}");
+                        col.Item().PaddingVertical(10).Table(table => {
+                            table.ColumnsDefinition(c => { c.RelativeColumn(3); c.RelativeColumn(); c.RelativeColumn(); c.RelativeColumn(); });
+                            table.Header(h => { h.Cell().Text("Desc"); h.Cell().Text("Qtd"); h.Cell().Text("Preço"); h.Cell().Text("Total"); });
+
+                            table.Cell().Text($"Voo: {reserva.Voo?.Origem}-{reserva.Voo?.Destino}");
+                            table.Cell().Text($"{qtd}"); table.Cell().Text($"{reserva.Voo?.Preco:C}"); table.Cell().Text($"{(reserva.Voo?.Preco * qtd):C}");
+
+                            if (reserva.Hotel != null)
+                            {
+                                int dias = (reserva.DataCheckOut - reserva.DataCheckIn).Days; if (dias < 1) dias = 1;
+                                table.Cell().Text($"Hotel: {reserva.Hotel.Nome}"); table.Cell().Text($"{dias} noites");
+                                table.Cell().Text($"{reserva.Hotel.PrecoPorNoite:C}"); table.Cell().Text($"{(reserva.Hotel.PrecoPorNoite * dias):C}");
+                            }
+                        });
+                        col.Item().AlignRight().Text($"Total: {reserva.ValorTotal:C}").Bold().FontSize(14);
+                    });
+                });
+            });
+            return File(document.GeneratePdf(), "application/pdf", $"Fatura_{id}.pdf");
+        }
 
         private async Task<IActionResult> ReloadConfigureView(ReservaConfigViewModel model)
         {
             model.Voo = await _context.Voos.FindAsync(model.VooId);
             if (model.HotelId.HasValue) model.Hotel = await _context.Hoteis.FindAsync(model.HotelId);
 
+            // CORREÇÃO AQUI TAMBÉM: Ordenar por ID antes de selecionar o texto
             model.AssentosDisponiveis = await _context.Assentos
                 .Where(a => a.VooId == model.VooId && !a.IsOccupied)
+                .OrderBy(a => a.Id)
                 .Select(a => a.NumeroAssento)
-                .OrderBy(a => a)
                 .ToListAsync();
 
             return View(model);
@@ -285,24 +290,15 @@ namespace AeroTejo.Controllers
 
         public async Task<IActionResult> Confirmation(int id)
         {
-            var reserva = await _context.Reservas
-                .Include(r => r.User).Include(r => r.Voo).Include(r => r.Hotel).Include(r => r.Faturacao)
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (reserva == null) return NotFound();
-            return View(reserva);
+            var r = await _context.Reservas.Include(x => x.User).Include(x => x.Voo).Include(x => x.Hotel).Include(x => x.Faturacao).FirstOrDefaultAsync(x => x.Id == id);
+            return r == null ? NotFound() : View(r);
         }
 
         public async Task<IActionResult> MinhasReservas()
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue) return RedirectToAction("Login", "Account");
-
-            var reservas = await _context.Reservas
-                .Include(r => r.Voo).Include(r => r.Hotel)
-                .Where(r => r.UserId == userId.Value)
-                .OrderByDescending(r => r.DataReserva).ToListAsync();
-            return View(reservas);
+            var uid = HttpContext.Session.GetInt32("UserId");
+            if (!uid.HasValue) return RedirectToAction("Login", "Account");
+            return View(await _context.Reservas.Include(r => r.Voo).Include(r => r.Hotel).Where(r => r.UserId == uid.Value).OrderByDescending(r => r.DataReserva).ToListAsync());
         }
     }
 }

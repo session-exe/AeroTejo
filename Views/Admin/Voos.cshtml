@@ -1,24 +1,24 @@
 @model IEnumerable<AeroTejo.Models.Voo>
 
-@{
+    @{
     ViewData["Title"] = "Gestão de Voos";
-}
+    }
 
-<div class="container-fluid my-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-plane"></i> Gestão de Voos</h2>
-        <a asp-action="CreateVoo" class="btn btn-success">
-            <i class="fas fa-plus"></i> Novo Voo
-        </a>
-    </div>
+    <div class="container-fluid my-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-plane"></i> Gestão de Voos</h2>
+            <a asp-action="CreateVoo" class="btn btn-success">
+                <i class="fas fa-plus"></i> Novo Voo
+            </a>
+        </div>
 
-    @if (Model.Any())
+        @if (Model.Any())
     {
-        <div class="card">
+        <div class="card shadow-sm">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
                             <tr>
                                 <th>ID</th>
                                 <th>Companhia</th>
@@ -27,29 +27,39 @@
                                 <th>Data/Hora</th>
                                 <th>Preço</th>
                                 <th>Lugares</th>
-                                <th>Ações</th>
+                                <th class="text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var voo in Model)
                             {
-                                <tr>
-                                    <td>@voo.Id</td>
-                                    <td>@voo.Companhia</td>
-                                    <td>@voo.Origem</td>
-                                    <td>@voo.Destino</td>
-                                    <td>@voo.DataHora.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td>@voo.Preco.ToString("C")</td>
-                                    <td>@voo.TotalLugares</td>
-                                    <td>
-                                        <a asp-action="EditVoo" asp-route-id="@voo.Id" class="btn btn-sm btn-primary">
+                            <tr>
+                                <td>@voo.Id</td>
+                                <td><strong>@voo.Companhia</strong></td>
+                                <td>@voo.Origem</td>
+                                <td>@voo.Destino</td>
+                                <td>@voo.DataHora.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@voo.Preco.ToString("C")</td>
+                                <td>@voo.TotalLugares</td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        @* Botão Editar *@
+                                        <a asp-action="EditVoo" asp-route-id="@voo.Id" class="btn btn-sm btn-primary" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a asp-action="DeleteVoo" asp-route-id="@voo.Id" class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
+
+                                        @* Formulário para Apagar (Necessário para métodos POST) *@
+                                        <form asp-action="DeleteVoo" asp-route-id="@voo.Id" method="post"
+                                              onsubmit="return confirm('Tem a certeza que deseja apagar este voo?');"
+                                              style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Apagar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
                             }
                         </tbody>
                     </table>
@@ -59,8 +69,15 @@
     }
     else
     {
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i> Não existem voos registados.
+        <div class="alert alert-info shadow-sm">
+            <i class="fas fa-info-circle"></i> Não existem voos registados no sistema.
         </div>
     }
-</div>
+    </div>
+
+    @section Scripts {
+        <script>// Opcional: Auto-close para mensagens de sucesso se as usares no AdminController
+        $(".alert").delay(4000).slideUp(200, function() {
+            $(this).alert('close');
+        });</script>
+    }

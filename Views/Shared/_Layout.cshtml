@@ -11,28 +11,84 @@
 }
 
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - AeroTejo</title>
-    
-    <!-- Bootstrap 5 CSS -->
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- CSS Personalizado -->
+
     <link rel="stylesheet" href="~/css/aerotejo.css" asp-append-version="true" />
-    
+
+    <style>
+        /* 1. Forçar fundo branco */
+        body, main, .card {
+            background-color: #ffffff !important;
+        }
+
+        /* 2. OBRIGAR todo o texto comum a ser preto */
+        body, p, span, div, li, td, th, label {
+            color: #212529 !important;
+        }
+
+        /* 3. Inputs BRANCOS com texto PRETO */
+        input, select, textarea, .form-control, .form-select {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #ced4da !important;
+        }
+
+            input:focus, select:focus, textarea:focus, .form-control:focus {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                border-color: #86b7fe !important;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+            }
+
+        ::placeholder {
+            color: #6c757d !important;
+            opacity: 1 !important;
+        }
+
+        /* 4. Títulos pretos */
+        h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6, .card-title, .card-header {
+            color: #212529 !important;
+        }
+
+        /* 5. Bordas nos cartões */
+        .card {
+            border: 1px solid #dee2e6 !important;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+        }
+
+        /* 6. Navbar e Botões */
+        .navbar {
+            background-color: #6f42c1 !important;
+        }
+
+            .navbar * {
+                color: rgba(255,255,255,0.9) !important;
+            }
+
+        .btn-primary {
+            color: #ffffff !important;
+        }
+
+        /* 7. Links soltos */
+        main a:not(.btn):not(.nav-link) {
+            color: #0d6efd !important;
+        }
+    </style>
+
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark">
+        <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
             <div class="container">
-                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
                     <i class="fas fa-plane-departure"></i> AeroTejo
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -42,105 +98,40 @@
                     <ul class="navbar-nav ms-auto">
                         @if (!isAuthenticated)
                         {
-                            <!-- Menu para Visitantes -->
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                    <i class="fas fa-home"></i> Home
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Voo" asp-action="Index">
-                                    <i class="fas fa-plane"></i> Voos
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Hotel" asp-action="Index">
-                                    <i class="fas fa-hotel"></i> Hotéis
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">
-                                    <i class="fas fa-sign-in-alt"></i> Login
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link btn btn-primary text-white ms-2" asp-controller="Account" asp-action="Register">
-                                    <i class="fas fa-user-plus"></i> Registo
-                                </a>
-                            </li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index"><i class="fas fa-home"></i> Home</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Voo" asp-action="Index"><i class="fas fa-plane"></i> Voos</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Hotel" asp-action="Index"><i class="fas fa-hotel"></i> Hotéis</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Login"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                        <li class="nav-item"><a class="nav-link btn btn-light text-primary fw-bold ms-2" style="color: #6f42c1 !important;" asp-controller="Account" asp-action="Register"><i class="fas fa-user-plus"></i> Registo</a></li>
                         }
                         else if (isAdmin)
                         {
-                            <!-- Menu para Administrador -->
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Admin" asp-action="Dashboard">
-                                    <i class="fas fa-chart-line"></i> Dashboard
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Admin" asp-action="Voos">
-                                    <i class="fas fa-plane"></i> Gestão de Voos
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Admin" asp-action="Hoteis">
-                                    <i class="fas fa-hotel"></i> Gestão de Hotéis
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Admin" asp-action="Reservas">
-                                    <i class="fas fa-calendar-check"></i> Reservas
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Admin" asp-action="Utilizadores">
-                                    <i class="fas fa-users"></i> Utilizadores
-                                </a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user-shield"></i> @userName
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">
-                                        <i class="fas fa-sign-out-alt"></i> Logout
-                                    </a></li>
-                                </ul>
-                            </li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Voos"><i class="fas fa-plane"></i> Voos</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Reservas"><i class="fas fa-calendar-check"></i> Reservas</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-shield"></i> @userName
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" style="color: #212529 !important;" asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                            </ul>
+                        </li>
                         }
                         else if (isPassageiro)
                         {
-                            <!-- Menu para Passageiro -->
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                    <i class="fas fa-home"></i> Home
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Voo" asp-action="Index">
-                                    <i class="fas fa-plane"></i> Voos
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Hotel" asp-action="Index">
-                                    <i class="fas fa-hotel"></i> Hotéis
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Reserva" asp-action="MinhasReservas">
-                                    <i class="fas fa-calendar-check"></i> Minhas Reservas
-                                </a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user"></i> @userName
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">
-                                        <i class="fas fa-sign-out-alt"></i> Logout
-                                    </a></li>
-                                </ul>
-                            </li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index"><i class="fas fa-home"></i> Home</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Voo" asp-action="Index"><i class="fas fa-plane"></i> Voos</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Hotel" asp-action="Index"><i class="fas fa-hotel"></i> Hotéis</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Reserva" asp-action="MinhasReservas"><i class="fas fa-calendar-check"></i> Reservas</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> @userName
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" style="color: #212529 !important;" asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                            </ul>
+                        </li>
                         }
                     </ul>
                 </div>
@@ -149,49 +140,36 @@
     </header>
 
     <main role="main">
-        <!-- Mensagens de Feedback -->
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="container mt-3">
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+        <div class="container mt-3">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        </div>
         }
         @if (TempData["ErrorMessage"] != null)
         {
-            <div class="container mt-3">
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+        <div class="container mt-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        </div>
         }
 
         @RenderBody()
     </main>
 
-    <footer class="footer mt-5">
+    <footer class="footer mt-5 py-3 border-top bg-light">
         <div class="container text-center">
-            <p class="mb-0">
-                &copy; 2026 AeroTejo - Sistema de Gestão de Agência de Viagens Aéreas
-            </p>
-            <p class="text-muted small">
-                Desenvolvido com <i class="fas fa-heart text-danger"></i> para TGPSI
-            </p>
+            <p class="mb-0 text-muted" style="color: #6c757d !important;">&copy; 2026 AeroTejo - Sistema de Gestão de Agência de Viagens Aéreas</p>
         </div>
     </footer>
 
-    <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <!-- Theme Toggle -->
-    <script src="~/js/theme-toggle.js" asp-append-version="true"></script>
-    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

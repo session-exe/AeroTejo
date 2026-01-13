@@ -1,311 +1,156 @@
-using Microsoft.AspNetCore.Mvc;
-using AeroTejo.Data;
-using AeroTejo.Models;
-using AeroTejo.ViewModels;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
+@model AeroTejo.ViewModels.ReservaConfigViewModel
 
-namespace AeroTejo.Controllers
-{
-    public class ReservaController : Controller
+<div class="container mt-5">
+    <h2>Configurar Reserva</h2>
+
+    <div class="card mb-4 bg-light">
+        <div class="card-body">
+            <h5>🛫 Voo: @Model.Voo?.Companhia</h5>
+            <p><strong>@Model.Voo?.Origem ➝ @Model.Voo?.Destino</strong> | @Model.Voo?.DataHora.ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
     {
-        private readonly AeroTejoContext _context;
+    <div class="alert alert-danger">
+        <div asp-validation-summary="All" class="text-danger"></div>
+    </div>
+    }
 
-        public ReservaController(AeroTejoContext context)
+    <form asp-action="Configure" method="post">
+        <input type="hidden" asp-for="VooId" />
+        <input type="hidden" asp-for="HotelId" />
+
+        @if (Model.HotelId.HasValue)
         {
-            _context = context;
+        <div class="card mb-4 p-3 border-info">
+            <h5 class="text-info">🏨 Hotel: @Model.Hotel?.Nome</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Check-in</label>
+                    <input asp-for="DataCheckIn" class="form-control" type="date"
+                           id="checkinDate"
+                           min="@Model.Voo?.DataHora.ToString(" yyyy-MM-dd")" required />
+                    <span asp-validation-for="DataCheckIn" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Check-out</label>
+                    <input asp-for="DataCheckOut" class="form-control" type="date"
+                           id="checkoutDate"
+                           min="@Model.Voo?.DataHora.AddDays(1).ToString(" yyyy-MM-dd")" required />
+                    <span asp-validation-for="DataCheckOut" class="text-danger"></span>
+                </div>
+            </div>
+            <small class="text-muted"><i class="bi bi-info-circle"></i> O check-in só pode ser feito a partir do dia de chegada do voo (@Model.Voo?.DataHora.ToShortDateString()).</small>
+        </div>
         }
 
-        // ==================== PASSO 1: CONFIGURAR (Assentos e Passageiros) ====================
-
-        [HttpGet]
-        public async Task<IActionResult>
-    Configure()
-    {
-    // 1. Verificar Login
-    var userId = HttpContext.Session.GetInt32("UserId");
-    if (!userId.HasValue)
-    {
-    TempData["ErrorMessage"] = "Precisa de fazer login para continuar.";
-    return RedirectToAction("Login", "Account");
-    }
-
-    // 2. Verificar Voo Selecionado
-    var vooId = HttpContext.Session.GetInt32("SelectedVooId");
-    if (!vooId.HasValue)
-    {
-    TempData["ErrorMessage"] = "Selecione um voo primeiro.";
-    return RedirectToAction("Index", "Home");
-    }
-
-    // 3. Carregar Voo e Assentos
-    var voo = await _context.Voos
-    .Include(v => v.Assentos)
-    .FirstOrDefaultAsync(v => v.Id == vooId.Value);
-
-    if (voo == null) return NotFound();
-
-    // 4. Carregar Hotel (Opcional)
-    var hotelId = HttpContext.Session.GetInt32("SelectedHotelId");
-    Hotel? hotel = null;
-    if (hotelId.HasValue)
-    {
-    hotel = await _context.Hoteis.FindAsync(hotelId.Value);
-    }
-
-    // 5. Preparar ViewModel com DATAS INICIAIS CORRETAS
-    var viewModel = new ReservaConfigViewModel
-    {
-    VooId = voo.Id,
-    Voo = voo,
-    HotelId = hotelId,
-    Hotel = hotel,
-
-    // --- CORREÇÃO: Inicializar datas com a data do voo ---
-    DataCheckIn = voo.DataHora.Date,
-    DataCheckOut = voo.DataHora.Date.AddDays(1),
-
-    // Carregar dropdowns
-    AssentosDisponiveis = voo.Assentos
-    .Where(a => !a.IsOccupied)
-    .Select(a => a.NumeroAssento)
-    .OrderBy(a => a)
-    .ToList(),
-
-    // Iniciar com 1 passageiro
-    Passageiros = new List<PassageiroInfo>
-        { new PassageiroInfo() }
-        };
-
-        return View(viewModel);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult>
-            Configure(ReservaConfigViewModel model)
-            {
-            // Carregar voo para validações
-            var voo = await _context.Voos.FindAsync(model.VooId);
-
-            // 1. Validação do Modelo
-            if (!ModelState.IsValid)
-            {
-            return await ReloadConfigureView(model);
-            }
-
-            // 2. Validação: Assentos Duplicados
-            var assentosEscolhidos = model.Passageiros.Select(p => p.AssentoSelecionado).ToList();
-            if (assentosEscolhidos.Count != assentosEscolhidos.Distinct().Count())
-            {
-            ModelState.AddModelError("", "Não pode selecionar o mesmo assento para passageiros diferentes.");
-            return await ReloadConfigureView(model);
-            }
-
-            // 3. Validação: Datas (Hotel)
-            if (model.HotelId.HasValue)
-            {
-            // Check-in anterior ao voo?
-            if (model.DataCheckIn.HasValue && model.DataCheckIn.Value.Date < voo!.DataHora.Date)
-            {
-            ModelState.AddModelError("DataCheckIn", "O check-in não pode ser feito antes da data de chegada do voo.");
-            return await ReloadConfigureView(model);
-            }
-
-            // Check-out antes do check-in?
-            if (model.DataCheckOut <= model.DataCheckIn)
-            {
-            ModelState.AddModelError("DataCheckOut", "A data de check-out deve ser posterior à de check-in.");
-            return await ReloadConfigureView(model);
-            }
-            }
-
-            // 4. Guardar na Sessão
-            var passageirosJson = JsonSerializer.Serialize(model.Passageiros);
-            HttpContext.Session.SetString("Reserva_Passageiros", passageirosJson);
-            HttpContext.Session.SetInt32("Reserva_VooId", model.VooId);
-
-            if (model.HotelId.HasValue)
-            {
-            HttpContext.Session.SetInt32("Reserva_HotelId", model.HotelId.Value);
-            HttpContext.Session.SetString("Reserva_CheckIn", model.DataCheckIn?.ToString("yyyy-MM-dd") ?? "");
-            HttpContext.Session.SetString("Reserva_CheckOut", model.DataCheckOut?.ToString("yyyy-MM-dd") ?? "");
-            }
-            else
-            {
-            HttpContext.Session.Remove("Reserva_HotelId");
-            }
-
-            return RedirectToAction(nameof(Checkout));
-            }
-
-            // ==================== PASSO 2: CHECKOUT ====================
-
-            [HttpGet]
-            public async Task<IActionResult>
-                Checkout()
+        <div class="mb-4">
+            <h4>Passageiros & Assentos</h4>
+            <div id="passageiros-container">
+                @for (int i = 0; i < Model.Passageiros.Count; i++)
                 {
-                var userId = HttpContext.Session.GetInt32("UserId");
-                if (!userId.HasValue) return RedirectToAction("Login", "Account");
-
-                var vooId = HttpContext.Session.GetInt32("Reserva_VooId");
-                if (!vooId.HasValue) return RedirectToAction("Index", "Home");
-
-                var voo = await _context.Voos.FindAsync(vooId.Value);
-                var hotelId = HttpContext.Session.GetInt32("Reserva_HotelId");
-
-                // Ler Passageiros
-                var passageirosJson = HttpContext.Session.GetString("Reserva_Passageiros");
-                var passageiros = string.IsNullOrEmpty(passageirosJson)
-                ? new List<PassageiroInfo>
-                    ()
-                    : JsonSerializer.Deserialize<List<PassageiroInfo>>(passageirosJson);
-
-            int numPassageiros = passageiros?.Count ?? 1;
-
-            // Calcular Total
-            decimal valorTotal = voo!.Preco * numPassageiros;
-            Hotel? hotel = null;
-            int numNoites = 0;
-
-            if (hotelId.HasValue)
-            {
-                hotel = await _context.Hoteis.FindAsync(hotelId.Value);
-                if (hotel != null)
-                {
-                    DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckIn"), out DateTime cIn);
-                    DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckOut"), out DateTime cOut);
-
-                    numNoites = (cOut - cIn).Days;
-                    if (numNoites < 1) numNoites = 1;
-
-                    valorTotal += hotel.PrecoPorNoite * numNoites;
+                <div class="passageiro-row card mb-3 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="card-title d-flex justify-content-between">
+                            <span>Passageiro #<span class="p-num">@(i + 1)</span></span>
+                            @if(i > 0) { <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerPassageiro(this)">Remover</button> }
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Nome Completo</label>
+                                <input name="Passageiros[@i].NomeCompleto" value="@Model.Passageiros[i].NomeCompleto" class="form-control" required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Documento</label>
+                                <input name="Passageiros[@i].NumeroDocumento" value="@Model.Passageiros[i].NumeroDocumento" class="form-control" required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Assento</label>
+                                <select name="Passageiros[@i].AssentoSelecionado" class="form-select seat-select" required>
+                                    <option value="">-- Selecionar --</option>
+                                    @foreach (var seat in Model.AssentosDisponiveis)
+                                    {
+                                        <!option value="@seat" @(Model.Passageiros[i].AssentoSelecionado == seat ? "selected" : "")>@seat</!option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 }
-            }
+            </div>
 
-            ViewBag.Voo = voo;
-            ViewBag.Hotel = hotel;
-            ViewBag.ValorTotal = valorTotal;
-            ViewBag.TotalPassageiros = numPassageiros;
-            ViewBag.NumNoites = numNoites;
+            <button type="button" class="btn btn-secondary" onclick="adicionarPassageiro()">+ Adicionar Passageiro</button>
+        </div>
 
-            return View();
+        <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">Seguir para Pagamento</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const checkinInput = document.getElementById('checkinDate');
+        const checkoutInput = document.getElementById('checkoutDate');
+
+        if (checkinInput && checkoutInput) {
+            checkinInput.addEventListener('change', function () {
+                if (!this.value) return;
+                let dataCheckin = new Date(this.value);
+                dataCheckin.setDate(dataCheckin.getDate() + 1);
+                let minCheckout = dataCheckin.toISOString().split('T')[0];
+                checkoutInput.min = minCheckout;
+                if (checkoutInput.value && checkoutInput.value < minCheckout) {
+                    checkoutInput.value = minCheckout;
+                }
+            });
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Checkout(CheckoutViewModel model)
-        {
-            if (!ModelState.IsValid) return await Checkout();
+        function adicionarPassageiro() {
+            var container = document.getElementById('passageiros-container');
+            var index = container.querySelectorAll('.passageiro-row').length;
+            var firstSelect = document.querySelector('.seat-select');
+            var options = firstSelect ? firstSelect.innerHTML : '<option value="">-- Selecionar --</option>';
 
-            var userId = HttpContext.Session.GetInt32("UserId");
-            var vooId = HttpContext.Session.GetInt32("Reserva_VooId");
-            var hotelId = HttpContext.Session.GetInt32("Reserva_HotelId");
-            var passageirosJson = HttpContext.Session.GetString("Reserva_Passageiros");
-
-            if (!userId.HasValue || !vooId.HasValue) return RedirectToAction("Index", "Home");
-
-            var passageiros = JsonSerializer.Deserialize<List<PassageiroInfo>>(passageirosJson!) ?? new();
-
-            // 1. Ocupar Assentos
-            foreach(var p in passageiros)
-            {
-                var assento = await _context.Assentos
-                    .FirstOrDefaultAsync(a => a.VooId == vooId && a.NumeroAssento == p.AssentoSelecionado);
-                if (assento != null) assento.IsOccupied = true;
-            }
-
-            // 2. Calcular Total Final
-            var voo = await _context.Voos.FindAsync(vooId);
-            decimal valorTotal = voo!.Preco * passageiros.Count;
-            DateTime cIn = DateTime.Now, cOut = DateTime.Now;
-
-            if (hotelId.HasValue)
-            {
-                var hotel = await _context.Hoteis.FindAsync(hotelId);
-                DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckIn"), out cIn);
-                DateTime.TryParse(HttpContext.Session.GetString("Reserva_CheckOut"), out cOut);
-                int dias = (cOut - cIn).Days;
-                if(dias < 1) dias = 1;
-                valorTotal += hotel!.PrecoPorNoite * dias;
-            }
-
-            // 3. Criar Reserva
-            var reserva = new Reserva
-            {
-                UserId = userId.Value,
-                VooId = vooId.Value,
-                HotelId = hotelId,
-                DataCheckIn = cIn,
-                DataCheckOut = cOut,
-                ValorTotal = valorTotal,
-                DataReserva = DateTime.Now,
-                NumeroAssento = "Múltiplos",
-                DadosPassageiros = passageirosJson
-            };
-
-            _context.Reservas.Add(reserva);
-            await _context.SaveChangesAsync();
-
-            // 4. Criar Faturação
-            var faturacao = new Faturacao
-            {
-                ReservaId = reserva.Id,
-                NIF = model.NIF ?? "N/A",
-                Morada = model.Morada,
-                Nome = model.Nome,
-                DataEmissao = DateTime.Now
-            };
-
-            _context.Faturacoes.Add(faturacao);
-            await _context.SaveChangesAsync();
-
-            // 5. Limpar Sessão
-            HttpContext.Session.Remove("Reserva_VooId");
-            HttpContext.Session.Remove("Reserva_HotelId");
-            HttpContext.Session.Remove("Reserva_Passageiros");
-            HttpContext.Session.Remove("SelectedVooId");
-            HttpContext.Session.Remove("SelectedHotelId");
-
-            return RedirectToAction(nameof(Confirmation), new { id = reserva.Id });
+            var html = `
+                    <div class="passageiro-row card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title d-flex justify-content-between">
+                                <span>Passageiro #<span class="p-num">${index + 1}</span></span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerPassageiro(this)">Remover</button>
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Nome Completo</label>
+                                    <input name="Passageiros[${index}].NomeCompleto" class="form-control" required />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Documento</label>
+                                    <input name="Passageiros[${index}].NumeroDocumento" class="form-control" required />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Assento</label>
+                                    <select name="Passageiros[${index}].AssentoSelecionado" class="form-select seat-select" required>
+                                        ${options}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            container.insertAdjacentHTML('beforeend', html);
         }
 
-        // ==================== AUXILIARES ====================
-
-        private async Task<IActionResult> ReloadConfigureView(ReservaConfigViewModel model)
-        {
-            model.Voo = await _context.Voos.FindAsync(model.VooId);
-            if (model.HotelId.HasValue) model.Hotel = await _context.Hoteis.FindAsync(model.HotelId);
-
-            model.AssentosDisponiveis = await _context.Assentos
-                .Where(a => a.VooId == model.VooId && !a.IsOccupied)
-                .Select(a => a.NumeroAssento)
-                .OrderBy(a => a)
-                .ToListAsync();
-
-            return View(model);
+        function removerPassageiro(btn) {
+            btn.closest('.passageiro-row').remove();
+            document.querySelectorAll('.passageiro-row').forEach((row, idx) => {
+                row.querySelector('.p-num').textContent = idx + 1;
+                // Re-indexar nomes para o servidor receber a lista correta
+                row.querySelectorAll('input, select').forEach(input => {
+                    let name = input.getAttribute('name');
+                    if (name) input.setAttribute('name', name.replace(/\[\d+\]/, '[' + idx + ']'));
+                });
+            });
         }
-
-        public async Task<IActionResult> Confirmation(int id)
-        {
-            var reserva = await _context.Reservas
-                .Include(r => r.User).Include(r => r.Voo).Include(r => r.Hotel).Include(r => r.Faturacao)
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (reserva == null) return NotFound();
-            return View(reserva);
-        }
-
-        public async Task<IActionResult> MinhasReservas()
-        {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue) return RedirectToAction("Login", "Account");
-
-            var reservas = await _context.Reservas
-                .Include(r => r.Voo).Include(r => r.Hotel)
-                .Where(r => r.UserId == userId.Value)
-                .OrderByDescending(r => r.DataReserva).ToListAsync();
-            return View(reservas);
-        }
-    }
+    </script>
 }

@@ -1,176 +1,110 @@
 using AeroTejo.Models;
 using AeroTejo.Helpers;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using AeroTejo.ViewModels;
 
 namespace AeroTejo.Data
 {
-    /// <summary>
-    /// Classe responsável por popular a base de dados com dados iniciais
-    /// </summary>
     public static class DbSeeder
     {
         public static void Seed(AeroTejoContext context)
         {
-            // Verificar se já existem dados
-            if (context.Users.Any())
-            {
-                return; // Base de dados já foi populada
-            }
+            context.Database.EnsureCreated();
+            if (context.Users.Any()) return;
 
-            // Criar utilizador administrador
-            string adminSalt = PasswordHelper.GenerateSalt();
-            string adminHash = PasswordHelper.HashPassword("admin123", adminSalt);
+            Console.WriteLine("A iniciar Seeding...");
 
-            var admin = new User
-            {
-                NomeCompleto = "Administrador Sistema",
-                Idade = 30,
-                Email = "admin@aerotejo.pt",
-                Telemovel = "+351 910 000 000",
-                PasswordHash = adminHash,
-                PasswordSalt = adminSalt,
-                Role = "Administrador"
-            };
+            // 1. UTILIZADORES
+            string salt = PasswordHelper.GenerateSalt();
+            var admin = new User { NomeCompleto = "Administrador", Idade = 35, Email = "admin@aerotejo.pt", Telemovel = "910000000", PasswordHash = PasswordHelper.HashPassword("admin123", salt), PasswordSalt = salt, Role = "Administrador" };
+            var joao = new User { NomeCompleto = "João Silva", Idade = 28, Email = "joao@email.pt", Telemovel = "912345678", PasswordHash = PasswordHelper.HashPassword("pass123", salt), PasswordSalt = salt, Role = "Passageiro" };
+            var ana = new User { NomeCompleto = "Ana Pereira", Idade = 32, Email = "ana@email.pt", Telemovel = "966554433", PasswordHash = PasswordHelper.HashPassword("pass123", salt), PasswordSalt = salt, Role = "Passageiro" };
 
-            context.Users.Add(admin);
+            context.Users.AddRange(admin, joao, ana);
+            context.SaveChanges();
 
-            // Criar utilizador passageiro de teste
-            string userSalt = PasswordHelper.GenerateSalt();
-            string userHash = PasswordHelper.HashPassword("pass123", userSalt);
-
-            var passageiro = new User
-            {
-                NomeCompleto = "João Silva",
-                Idade = 28,
-                Email = "joao.silva@email.pt",
-                Telemovel = "+351 912 345 678",
-                PasswordHash = userHash,
-                PasswordSalt = userSalt,
-                Role = "Passageiro"
-            };
-
-            context.Users.Add(passageiro);
-
-            // Criar voos de exemplo
+            // 2. VOOS
             var voos = new List<Voo>
             {
-                new Voo
-                {
-                    Companhia = "TAP Air Portugal",
-                    Origem = "Lisboa",
-                    Destino = "Porto",
-                    DataHora = DateTime.Now.AddDays(7).AddHours(10),
-                    Preco = 89.99m,
-                    TotalLugares = 180
-                },
-                new Voo
-                {
-                    Companhia = "Ryanair",
-                    Origem = "Porto",
-                    Destino = "Faro",
-                    DataHora = DateTime.Now.AddDays(10).AddHours(14),
-                    Preco = 49.99m,
-                    TotalLugares = 189
-                },
-                new Voo
-                {
-                    Companhia = "EasyJet",
-                    Origem = "Lisboa",
-                    Destino = "Faro",
-                    DataHora = DateTime.Now.AddDays(5).AddHours(8),
-                    Preco = 59.99m,
-                    TotalLugares = 156
-                },
-                new Voo
-                {
-                    Companhia = "TAP Air Portugal",
-                    Origem = "Porto",
-                    Destino = "Lisboa",
-                    DataHora = DateTime.Now.AddDays(14).AddHours(16),
-                    Preco = 79.99m,
-                    TotalLugares = 180
-                },
-                new Voo
-                {
-                    Companhia = "Ryanair",
-                    Origem = "Faro",
-                    Destino = "Lisboa",
-                    DataHora = DateTime.Now.AddDays(12).AddHours(12),
-                    Preco = 54.99m,
-                    TotalLugares = 189
-                }
+                new Voo { Companhia = "TAP", Origem = "Lisboa", Destino = "Paris", DataHora = DateTime.Now.AddDays(2), Preco = 150.00m, TotalLugares = 180 },
+                new Voo { Companhia = "British Airways", Origem = "Lisboa", Destino = "Londres", DataHora = DateTime.Now.AddDays(5), Preco = 120.50m, TotalLugares = 180 },
+                new Voo { Companhia = "Iberia", Origem = "Porto", Destino = "Madrid", DataHora = DateTime.Now.AddDays(10), Preco = 85.00m, TotalLugares = 150 },
+                new Voo { Companhia = "Lufthansa", Origem = "Faro", Destino = "Berlim", DataHora = DateTime.Now.AddDays(15), Preco = 200.00m, TotalLugares = 180 },
+                new Voo { Companhia = "Emirates", Origem = "Lisboa", Destino = "Dubai", DataHora = DateTime.Now.AddDays(20), Preco = 600.00m, TotalLugares = 300 },
+                new Voo { Companhia = "Ryanair", Origem = "Porto", Destino = "Roma", DataHora = DateTime.Now.AddDays(8), Preco = 45.99m, TotalLugares = 180 },
+                new Voo { Companhia = "Ryanair", Origem = "Faro", Destino = "Lisboa", DataHora = DateTime.Now.AddDays(30), Preco = 29.99m, TotalLugares = 180 }
             };
 
             context.Voos.AddRange(voos);
             context.SaveChanges();
 
-            // Criar assentos para cada voo
+            // 3. ASSENTOS (CORREÇÃO: 1A, 1B, 1C...)
+            var letras = new[] { "A", "B", "C", "D", "E", "F" };
+            var assentos = new List<Assento>();
+
             foreach (var voo in voos)
             {
-                for (int i = 1; i <= voo.TotalLugares; i++)
+                int filas = voo.TotalLugares / 6;
+                for (int fila = 1; fila <= filas; fila++)
                 {
-                    var assento = new Assento
+                    foreach (var letra in letras)
                     {
-                        VooId = voo.Id,
-                        NumeroAssento = $"{(char)('A' + (i - 1) / 6)}{((i - 1) % 6) + 1}",
-                        IsOccupied = false
-                    };
-                    context.Assentos.Add(assento);
+                        assentos.Add(new Assento
+                        {
+                            VooId = voo.Id,
+                            NumeroAssento = $"{fila}{letra}", // Gera: 1A, 1B... 10A... 30F
+                            IsOccupied = false
+                        });
+                    }
                 }
             }
+            context.Assentos.AddRange(assentos);
+            context.SaveChanges();
 
-            // Criar hotéis de exemplo
+            // 4. HOTÉIS
             var hoteis = new List<Hotel>
             {
-                new Hotel
-                {
-                    Nome = "Hotel Tejo Palace",
-                    Cidade = "Lisboa",
-                    PrecoPorNoite = 120.00m,
-                    Descricao = "Hotel de luxo no centro de Lisboa com vista para o Tejo."
-                },
-                new Hotel
-                {
-                    Nome = "Porto Riverside Hotel",
-                    Cidade = "Porto",
-                    PrecoPorNoite = 95.00m,
-                    Descricao = "Hotel moderno junto ao rio Douro com excelentes comodidades."
-                },
-                new Hotel
-                {
-                    Nome = "Algarve Beach Resort",
-                    Cidade = "Faro",
-                    PrecoPorNoite = 150.00m,
-                    Descricao = "Resort à beira-mar com piscinas e spa."
-                },
-                new Hotel
-                {
-                    Nome = "Lisboa Central Inn",
-                    Cidade = "Lisboa",
-                    PrecoPorNoite = 75.00m,
-                    Descricao = "Hotel económico no coração de Lisboa."
-                },
-                new Hotel
-                {
-                    Nome = "Porto Vintage Hotel",
-                    Cidade = "Porto",
-                    PrecoPorNoite = 110.00m,
-                    Descricao = "Hotel boutique com decoração tradicional portuguesa."
-                },
-                new Hotel
-                {
-                    Nome = "Faro Marina Hotel",
-                    Cidade = "Faro",
-                    PrecoPorNoite = 85.00m,
-                    Descricao = "Hotel junto à marina com vista para o mar."
-                }
+                new Hotel { Nome = "Eiffel Tower Stay", Cidade = "Paris", PrecoPorNoite = 250.00m, Descricao = "Vista para a torre." },
+                new Hotel { Nome = "London City Inn", Cidade = "Londres", PrecoPorNoite = 180.00m, Descricao = "No centro da cidade." },
+                new Hotel { Nome = "Madrid Plaza", Cidade = "Madrid", PrecoPorNoite = 90.00m, Descricao = "Económico e central." },
+                new Hotel { Nome = "Berlin Wall Hotel", Cidade = "Berlim", PrecoPorNoite = 120.00m, Descricao = "Histórico." },
+                new Hotel { Nome = "Algarve Beach Resort", Cidade = "Faro", PrecoPorNoite = 150.00m, Descricao = "Resort à beira-mar." },
+                new Hotel { Nome = "Hotel Tejo Palace", Cidade = "Lisboa", PrecoPorNoite = 120.00m, Descricao = "Luxo no centro." }
             };
-
             context.Hoteis.AddRange(hoteis);
             context.SaveChanges();
 
-            Console.WriteLine("Base de dados populada com sucesso!");
-            Console.WriteLine("Utilizador Admin: admin@aerotejo.pt / admin123");
-            Console.WriteLine("Utilizador Passageiro: joao.silva@email.pt / pass123");
+            // 5. RESERVAS DE EXEMPLO
+            var vooParis = voos.First(v => v.Destino == "Paris");
+
+            // Ocupar 1A
+            var assentoOcupado = context.Assentos.First(a => a.VooId == vooParis.Id && a.NumeroAssento == "1A");
+            assentoOcupado.IsOccupied = true;
+
+            var listaPax = new List<PassageiroInfo> { new PassageiroInfo { NomeCompleto = "João Silva", NumeroDocumento = "123", AssentoSelecionado = "1A" } };
+
+            var reserva = new Reserva
+            {
+                UserId = joao.Id,
+                VooId = vooParis.Id,
+                HotelId = null,
+                DataCheckIn = vooParis.DataHora.Date,
+                DataCheckOut = vooParis.DataHora.Date,
+                DataReserva = DateTime.Now,
+                NumeroAssento = "1A",
+                DadosPassageiros = JsonSerializer.Serialize(listaPax),
+                ValorTotal = vooParis.Preco
+            };
+            context.Reservas.Add(reserva);
+            context.SaveChanges();
+
+            context.Faturacoes.Add(new Faturacao { ReservaId = reserva.Id, Nome = "João Silva", NIF = "999999999", Morada = "Lisboa", DataEmissao = DateTime.Now });
+            context.SaveChanges();
+
+            Console.WriteLine("Dados populados com sucesso!");
         }
     }
 }

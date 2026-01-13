@@ -1,63 +1,42 @@
 @model IEnumerable<AeroTejo.Models.Reserva>
-    @using System.Text.Json
-    @using AeroTejo.ViewModels
 
     <div class="container mt-5">
-        <h2>Minhas Reservas</h2>
+        <h2 class="mb-4">Minhas Reservas</h2>
 
         @if (!Model.Any())
     {
-        <div class="alert alert-info">Ainda não tem reservas efetuadas.</div>
+        <div class="alert alert-info">Ainda não efetuou nenhuma reserva.</div>
     }
     else
     {
-        @foreach (var reserva in Model)
+        @foreach (var item in Model)
         {
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><strong>Reserva #@reserva.Id</strong> - @reserva.DataReserva.ToShortDateString()</span>
-                <span class="badge bg-success">@reserva.ValorTotal.ToString("C")</span>
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span>Reserva #@item.Id - @item.DataReserva.ToShortDateString()</span>
+                <span class="badge bg-light text-dark">@item.ValorTotal.ToString("C")</span>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
-                        <h6 class="text-primary">Voo</h6>
-                        <p class="mb-1">@reserva.Voo?.Origem <i class="bi bi-arrow-right"></i> @reserva.Voo?.Destino</p>
-                        <small class="text-muted">@reserva.Voo?.Companhia - @reserva.Voo?.DataHora.ToString("g")</small>
+                    <div class="col-md-8">
+                        <h5 class="card-title">@item.Voo?.Origem ➝ @item.Voo?.Destino</h5>
+                        <p class="card-text">
+                            <strong>Data Voo:</strong> @item.Voo?.DataHora.ToString("dd/MM/yyyy HH:mm")<br />
+                            <strong>Hotel:</strong> @(item.Hotel?.Nome ?? "Sem Hotel")
+                        </p>
                     </div>
-                    <div class="col-md-4">
-                        <h6 class="text-primary">Hotel</h6>
-                        @if (reserva.Hotel != null)
-                            {
-                        <p class="mb-1">@reserva.Hotel.Nome</p>
-                        <small class="text-muted">@reserva.DataCheckIn.ToShortDateString() a @reserva.DataCheckOut.ToShortDateString()</small>
-                            }
-                            else
-                            {
-                        <span class="text-muted">Nenhum</span>
-                            }
-                    </div>
-                    <div class="col-md-4">
-                        <h6 class="text-primary">Passageiros</h6>
-                        <ul class="list-unstyled small">
-                            @{
-                                    List<PassageiroInfo> ps = new();
-                                    try {
-                                        if(!string.IsNullOrEmpty(reserva.DadosPassageiros)) {
-                                            ps = JsonSerializer.Deserialize<List<PassageiroInfo>>(reserva.DadosPassageiros) ?? new();
-                                        }
-                                    } catch {}
-                            }
-                            @foreach(var p in ps)
-                                {
-                            <li><i class="bi bi-person"></i> @p.NomeCompleto (Assento: <strong>@p.AssentoSelecionado</strong>)</li>
-                                }
-                        </ul>
+                    <div class="col-md-4 text-end">
+                        <a asp-action="DownloadFatura" asp-route-id="@item.Id" class="btn btn-sm btn-success mb-2 w-100">
+                            <i class="fa fa-file-pdf"></i> Fatura
+                        </a>
+
+                        <form asp-action="Cancelar" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Tem a certeza que deseja cancelar esta reserva?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                <i class="fa fa-times"></i> Cancelar Reserva
+                            </button>
+                        </form>
                     </div>
                 </div>
-            </div>
-            <div class="card-footer text-end">
-                <a asp-action="Confirmation" asp-route-id="@reserva.Id" class="btn btn-sm btn-outline-primary">Ver Detalhes / Fatura</a>
             </div>
         </div>
         }
