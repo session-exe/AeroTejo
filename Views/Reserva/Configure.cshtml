@@ -1,0 +1,106 @@
+@model AeroTejo.ViewModels.ReservaConfigViewModel
+
+@{
+    ViewData["Title"] = "Configurar Reserva";
+    var voo = ViewBag.Voo as AeroTejo.Models.Voo;
+    var hotel = ViewBag.Hotel as AeroTejo.Models.Hotel;
+    var assentosDisponiveis = ViewBag.AssentosDisponiveis as List<AeroTejo.Models.Assento>;
+}
+
+<div class="container my-5">
+    <h2 class="mb-4">
+        <i class="fas fa-cog"></i> Configurar Reserva
+    </h2>
+
+    <!-- Resumo da Seleção -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plane"></i> Voo Selecionado
+                </div>
+                <div class="card-body">
+                    <p><strong>@voo.Companhia</strong></p>
+                    <p>@voo.Origem → @voo.Destino</p>
+                    <p>@voo.DataHora.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p class="text-primary fs-5">@voo.Preco.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+
+        @if (hotel != null)
+        {
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-hotel"></i> Hotel Selecionado
+                    </div>
+                    <div class="card-body">
+                        <p><strong>@hotel.Nome</strong></p>
+                        <p>@hotel.Cidade</p>
+                        <p>@hotel.Descricao</p>
+                        <p class="text-primary fs-5">@hotel.PrecoPorNoite.ToString("C") / noite</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Formulário de Configuração -->
+    <div class="card">
+        <div class="card-body">
+            <form asp-action="Configure" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="AssentoId" class="form-label"></label>
+                    <select asp-for="AssentoId" class="form-select">
+                        <option value="">-- Selecione um Assento --</option>
+                        @if (assentosDisponiveis != null)
+                        {
+                            @foreach (var assento in assentosDisponiveis)
+                            {
+                                <option value="@assento.Id">Assento @assento.NumeroAssento</option>
+                            }
+                        }
+                    </select>
+                    <span asp-validation-for="AssentoId" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="DataCheckIn" class="form-label"></label>
+                        <input asp-for="DataCheckIn" class="form-control" type="date" />
+                        <span asp-validation-for="DataCheckIn" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="DataCheckOut" class="form-label"></label>
+                        <input asp-for="DataCheckOut" class="form-control" type="date" />
+                        <span asp-validation-for="DataCheckOut" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="DadosPassageiros" class="form-label"></label>
+                    <textarea asp-for="DadosPassageiros" class="form-control" rows="4" 
+                              placeholder="Nome: João Silva&#10;Passaporte: PT123456&#10;Data Nascimento: 01/01/1990"></textarea>
+                    <span asp-validation-for="DadosPassageiros" class="text-danger"></span>
+                    <small class="form-text text-muted">
+                        Introduza os dados de todos os passageiros (um por linha).
+                    </small>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-arrow-right"></i> Avançar para Checkout
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

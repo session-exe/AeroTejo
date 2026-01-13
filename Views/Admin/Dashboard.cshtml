@@ -1,0 +1,203 @@
+@{
+    ViewData["Title"] = "Dashboard Administrativo";
+    var totalVoos = ViewBag.TotalVoos as int?;
+    var totalHoteis = ViewBag.TotalHoteis as int?;
+    var totalReservas = ViewBag.TotalReservas as int?;
+    var totalUtilizadores = ViewBag.TotalUtilizadores as int?;
+    var receitaTotal = ViewBag.ReceitaTotal as decimal?;
+    var destinosPopulares = ViewBag.DestinosPopulares as List<dynamic>;
+    var reservasPorMes = ViewBag.ReservasPorMes as List<dynamic>;
+}
+
+<div class="container-fluid my-4">
+    <h2 class="mb-4">
+        <i class="fas fa-chart-line"></i> Dashboard Administrativo
+    </h2>
+
+    <!-- Estatísticas Rápidas -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">
+                    <i class="fas fa-plane"></i> Total de Voos
+                </div>
+                <div class="stat-value">@(totalVoos ?? 0)</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">
+                    <i class="fas fa-hotel"></i> Total de Hotéis
+                </div>
+                <div class="stat-value">@(totalHoteis ?? 0)</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">
+                    <i class="fas fa-calendar-check"></i> Total de Reservas
+                </div>
+                <div class="stat-value">@(totalReservas ?? 0)</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">
+                    <i class="fas fa-users"></i> Total de Utilizadores
+                </div>
+                <div class="stat-value">@(totalUtilizadores ?? 0)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receita Total -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-euro-sign"></i> Receita Total Acumulada</h5>
+                    <h2 class="text-success">@(receitaTotal?.ToString("C") ?? "€0,00")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row g-4">
+        <!-- Gráfico de Reservas por Mês -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Reservas e Receita por Mês</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="reservasPorMesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Destinos Populares -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Destinos Mais Populares</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="destinosPopularesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row g-4 mt-4">
+        <div class="col-md-3">
+            <a asp-action="Voos" class="btn btn-primary w-100 py-3">
+                <i class="fas fa-plane fa-2x d-block mb-2"></i>
+                Gerir Voos
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a asp-action="Hoteis" class="btn btn-primary w-100 py-3">
+                <i class="fas fa-hotel fa-2x d-block mb-2"></i>
+                Gerir Hotéis
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a asp-action="Reservas" class="btn btn-primary w-100 py-3">
+                <i class="fas fa-calendar-check fa-2x d-block mb-2"></i>
+                Ver Reservas
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a asp-action="Utilizadores" class="btn btn-primary w-100 py-3">
+                <i class="fas fa-users fa-2x d-block mb-2"></i>
+                Ver Utilizadores
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Dados para os gráficos
+        var reservasPorMes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(reservasPorMes ?? new List<dynamic>()));
+        var destinosPopulares = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(destinosPopulares ?? new List<dynamic>()));
+
+        // Gráfico de Reservas por Mês
+        if (reservasPorMes && reservasPorMes.length > 0) {
+            var ctx1 = document.getElementById('reservasPorMesChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: reservasPorMes.map(r => r.mes),
+                    datasets: [{
+                        label: 'Número de Reservas',
+                        data: reservasPorMes.map(r => r.count),
+                        backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                        borderColor: 'rgba(139, 92, 246, 1)',
+                        borderWidth: 2
+                    }, {
+                        label: 'Receita (€)',
+                        data: reservasPorMes.map(r => r.receita),
+                        backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Destinos Populares
+        if (destinosPopulares && destinosPopulares.length > 0) {
+            var ctx2 = document.getElementById('destinosPopularesChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: destinosPopulares.map(d => d.destino),
+                    datasets: [{
+                        data: destinosPopulares.map(d => d.count),
+                        backgroundColor: [
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(109, 40, 217, 0.8)',
+                            'rgba(167, 139, 250, 0.8)',
+                            'rgba(124, 58, 237, 0.8)',
+                            'rgba(91, 33, 182, 0.8)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+}

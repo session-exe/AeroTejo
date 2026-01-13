@@ -1,0 +1,71 @@
+@model IEnumerable<AeroTejo.Models.Reserva>
+
+@{
+    ViewData["Title"] = "Minhas Reservas";
+}
+
+<div class="container my-5">
+    <h2 class="mb-4">
+        <i class="fas fa-calendar-check"></i> Minhas Reservas
+    </h2>
+
+    @if (Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var reserva in Model)
+            {
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-ticket-alt"></i> Reserva #@reserva.Id</span>
+                            <span class="badge badge-purple">@reserva.DataReserva.ToString("dd/MM/yyyy")</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-plane"></i> Voo</h6>
+                                    <p><strong>@reserva.Voo?.Companhia</strong></p>
+                                    <p>@reserva.Voo?.Origem → @reserva.Voo?.Destino</p>
+                                    <p>@reserva.Voo?.DataHora.ToString("dd/MM/yyyy HH:mm")</p>
+                                    <p><strong>Assento:</strong> @reserva.NumeroAssento</p>
+                                </div>
+
+                                <div class="col-md-3">
+                                    @if (reserva.Hotel != null)
+                                    {
+                                        <h6><i class="fas fa-hotel"></i> Hotel</h6>
+                                        <p><strong>@reserva.Hotel.Nome</strong></p>
+                                        <p>@reserva.Hotel.Cidade</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">Sem hotel</p>
+                                    }
+                                </div>
+
+                                <div class="col-md-3 text-end">
+                                    <h6>Valor Total</h6>
+                                    <p class="text-primary fs-4">@reserva.ValorTotal.ToString("C")</p>
+                                    <a asp-action="Confirmation" asp-route-id="@reserva.Id" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye"></i> Ver Detalhes
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h5>Ainda não tem reservas</h5>
+            <p>Comece a explorar os nossos voos e hotéis para fazer a sua primeira reserva!</p>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">
+                <i class="fas fa-search"></i> Explorar Destinos
+            </a>
+        </div>
+    }
+</div>

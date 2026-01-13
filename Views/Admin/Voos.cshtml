@@ -1,0 +1,66 @@
+@model IEnumerable<AeroTejo.Models.Voo>
+
+@{
+    ViewData["Title"] = "Gestão de Voos";
+}
+
+<div class="container-fluid my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-plane"></i> Gestão de Voos</h2>
+        <a asp-action="CreateVoo" class="btn btn-success">
+            <i class="fas fa-plus"></i> Novo Voo
+        </a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Companhia</th>
+                                <th>Origem</th>
+                                <th>Destino</th>
+                                <th>Data/Hora</th>
+                                <th>Preço</th>
+                                <th>Lugares</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var voo in Model)
+                            {
+                                <tr>
+                                    <td>@voo.Id</td>
+                                    <td>@voo.Companhia</td>
+                                    <td>@voo.Origem</td>
+                                    <td>@voo.Destino</td>
+                                    <td>@voo.DataHora.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@voo.Preco.ToString("C")</td>
+                                    <td>@voo.TotalLugares</td>
+                                    <td>
+                                        <a asp-action="EditVoo" asp-route-id="@voo.Id" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="DeleteVoo" asp-route-id="@voo.Id" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Não existem voos registados.
+        </div>
+    }
+</div>

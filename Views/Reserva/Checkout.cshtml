@@ -1,0 +1,130 @@
+@model AeroTejo.ViewModels.CheckoutViewModel
+
+@{
+    ViewData["Title"] = "Checkout";
+    var voo = ViewBag.Voo as AeroTejo.Models.Voo;
+    var hotel = ViewBag.Hotel as AeroTejo.Models.Hotel;
+    var valorTotal = ViewBag.ValorTotal as decimal?;
+}
+
+<div class="container my-5">
+    <h2 class="mb-4">
+        <i class="fas fa-shopping-cart"></i> Checkout
+    </h2>
+
+    <!-- Resumo da Reserva -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-file-invoice"></i> Resumo da Reserva</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-plane"></i> Voo</h6>
+                    <p>@voo.Companhia - @voo.Origem → @voo.Destino</p>
+                    <p>@voo.DataHora.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p><strong>@voo.Preco.ToString("C")</strong></p>
+                </div>
+                @if (hotel != null)
+                {
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-hotel"></i> Hotel</h6>
+                        <p>@hotel.Nome - @hotel.Cidade</p>
+                        <p><strong>@hotel.PrecoPorNoite.ToString("C") / noite</strong></p>
+                    </div>
+                }
+            </div>
+            <hr>
+            <h4 class="text-end">
+                <i class="fas fa-euro-sign"></i> Total: 
+                <span class="text-primary">@valorTotal?.ToString("C")</span>
+            </h4>
+        </div>
+    </div>
+
+    <!-- Formulário de Checkout -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-credit-card"></i> Dados de Pagamento</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Checkout" method="post" id="checkoutForm">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="NumeroCartao" class="form-label"></label>
+                            <input asp-for="NumeroCartao" class="form-control" placeholder="1234 5678 9012 3456" />
+                            <span asp-validation-for="NumeroCartao" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="NomeCartao" class="form-label"></label>
+                            <input asp-for="NomeCartao" class="form-control" placeholder="JOÃO SILVA" />
+                            <span asp-validation-for="NomeCartao" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Validade" class="form-label"></label>
+                                <input asp-for="Validade" class="form-control" placeholder="12/26" />
+                                <span asp-validation-for="Validade" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CVV" class="form-label"></label>
+                                <input asp-for="CVV" class="form-control" placeholder="123" />
+                                <span asp-validation-for="CVV" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-file-invoice-dollar"></i> Dados de Faturação</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="NIF" class="form-label"></label>
+                        <input asp-for="NIF" class="form-control" placeholder="123456789" form="checkoutForm" />
+                        <span asp-validation-for="NIF" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Morada" class="form-label"></label>
+                        <textarea asp-for="Morada" class="form-control" rows="3" 
+                                  placeholder="Rua Exemplo, nº 123&#10;1000-000 Lisboa" form="checkoutForm"></textarea>
+                        <span asp-validation-for="Morada" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Nome" class="form-label"></label>
+                        <input asp-for="Nome" class="form-control" placeholder="João Silva" form="checkoutForm" />
+                        <span asp-validation-for="Nome" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning">
+        <i class="fas fa-info-circle"></i> 
+        <strong>Nota:</strong> Este é um sistema de pagamento simulado para fins académicos. 
+        Nenhum pagamento real será processado.
+    </div>
+
+    <div class="d-grid gap-2">
+        <button type="submit" form="checkoutForm" class="btn btn-success btn-lg">
+            <i class="fas fa-check-circle"></i> Confirmar e Pagar @valorTotal?.ToString("C")
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

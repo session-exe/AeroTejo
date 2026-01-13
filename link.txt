@@ -1,0 +1,24 @@
+Link do Vídeo de Apresentação do AeroTejo
+==========================================
+
+URL: https://www.youtube.com/watch?v=XXXXXXXXXX
+
+Nota: Este é um placeholder. O vídeo de apresentação deve ser criado 
+demonstrando todas as funcionalidades implementadas no sistema:
+
+1. Página inicial com motor de busca
+2. Registo de novo utilizador
+3. Login no sistema
+4. Pesquisa de voos
+5. Seleção de voo e hotel
+6. Processo completo de reserva
+7. Visualização de "Minhas Reservas"
+8. Login como administrador
+9. Dashboard com estatísticas e gráficos
+10. CRUD de voos
+11. CRUD de hotéis
+12. Visualização de reservas e utilizadores
+13. Alternância entre Dark Mode e Light Mode
+
+Duração máxima: 4 minutos
+Formato: Não listado no YouTube

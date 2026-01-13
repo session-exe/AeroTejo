@@ -1,0 +1,19 @@
+@model IEnumerable<AeroTejo.Models.Reserva>
+@{ ViewData["Title"] = "Gestão de Reservas"; }
+<div class="container-fluid my-4">
+    <h2 class="mb-4"><i class="fas fa-calendar-check"></i> Todas as Reservas</h2>
+    @if (Model.Any()) {
+        <div class="card"><div class="card-body"><div class="table-responsive"><table class="table table-hover">
+            <thead><tr><th>ID</th><th>Cliente</th><th>Voo</th><th>Hotel</th><th>Data Reserva</th><th>Valor Total</th></tr></thead>
+            <tbody>@foreach (var reserva in Model) {
+                <tr><td>@reserva.Id</td><td>@reserva.User?.NomeCompleto</td>
+                <td>@reserva.Voo?.Origem → @reserva.Voo?.Destino</td>
+                <td>@(reserva.Hotel?.Nome ?? "Sem hotel")</td>
+                <td>@reserva.DataReserva.ToString("dd/MM/yyyy")</td>
+                <td>@reserva.ValorTotal.ToString("C")</td></tr>
+            }</tbody>
+        </table></div></div></div>
+    } else {
+        <div class="alert alert-info"><i class="fas fa-info-circle"></i> Não existem reservas.</div>
+    }
+</div>

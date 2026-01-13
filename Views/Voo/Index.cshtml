@@ -1,0 +1,75 @@
+@model IEnumerable<AeroTejo.Models.Voo>
+
+@{
+    ViewData["Title"] = "Voos Disponíveis";
+    var destinoFiltro = ViewBag.DestinoFiltro as string;
+}
+
+<div class="container my-5">
+    <h2 class="mb-4">
+        <i class="fas fa-plane"></i> Voos Disponíveis
+        @if (!string.IsNullOrEmpty(destinoFiltro))
+        {
+            <span class="text-muted">para @destinoFiltro</span>
+        }
+    </h2>
+
+    @if (Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var voo in Model)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-plane-departure text-primary"></i> @voo.Companhia
+                            </h5>
+                            <hr>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>Origem:</strong></p>
+                                    <p class="text-muted"><i class="fas fa-map-marker-alt"></i> @voo.Origem</p>
+                                </div>
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>Destino:</strong></p>
+                                    <p class="text-muted"><i class="fas fa-map-marker-alt"></i> @voo.Destino</p>
+                                </div>
+                            </div>
+                            <p class="mb-2">
+                                <i class="fas fa-calendar-alt"></i> 
+                                <strong>Data:</strong> @voo.DataHora.ToString("dd/MM/yyyy HH:mm")
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-chair"></i> 
+                                <strong>Lugares:</strong> @voo.TotalLugares
+                            </p>
+                            <p class="mb-3">
+                                <i class="fas fa-euro-sign"></i> 
+                                <strong>Preço:</strong> <span class="text-primary fs-4">@voo.Preco.ToString("C")</span>
+                            </p>
+                            <form asp-controller="Voo" asp-action="SelectFlight" method="post">
+                                <input type="hidden" name="vooId" value="@voo.Id" />
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-check-circle"></i> Selecionar Voo
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            Não foram encontrados voos disponíveis
+            @if (!string.IsNullOrEmpty(destinoFiltro))
+            {
+                <text>para @destinoFiltro</text>
+            }.
+            <a asp-controller="Home" asp-action="Index" class="alert-link">Voltar à página inicial</a>
+        </div>
+    }
+</div>

@@ -1,0 +1,164 @@
+@{
+    ViewData["Title"] = "Home";
+    var destinosPopulares = ViewBag.DestinosPopulares as List<string> ?? new List<string>();
+}
+
+<!-- Hero Section com Motor de Busca -->
+<div class="hero-section">
+    <div class="container">
+        <h1 class="hero-title fade-in">
+            <i class="fas fa-plane-departure"></i> Bem-vindo ao AeroTejo
+        </h1>
+        <p class="hero-subtitle fade-in">
+            Descubra o mundo com as melhores ofertas de voos e alojamentos
+        </p>
+
+        <!-- Motor de Busca -->
+        <div class="search-box">
+            <form asp-controller="Home" asp-action="Search" method="post" class="d-flex">
+                <input type="text" name="destino" class="form-control me-2" placeholder="Para onde quer viajar?" required>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-search"></i> Pesquisar
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Destinos Populares -->
+<div class="container my-5">
+    <h2 class="text-center mb-4">
+        <i class="fas fa-fire text-danger"></i> Destinos Populares
+    </h2>
+
+    @if (destinosPopulares.Any())
+    {
+        <div class="row g-4">
+            @foreach (var destino in destinosPopulares)
+            {
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-map-marker-alt text-danger"></i> @destino
+                            </h5>
+                            <p class="card-text">
+                                Explore as maravilhas de @destino com os nossos voos e hotéis selecionados.
+                            </p>
+                            <form asp-controller="Home" asp-action="Search" method="post">
+                                <input type="hidden" name="destino" value="@destino" />
+                                <button type="submit" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-plane"></i> Ver Voos
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <!-- Destinos de exemplo se não houver dados -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-map-marker-alt text-danger"></i> Lisboa
+                        </h5>
+                        <p class="card-text">
+                            Descubra a capital portuguesa com história, cultura e gastronomia única.
+                        </p>
+                        <form asp-controller="Home" asp-action="Search" method="post">
+                            <input type="hidden" name="destino" value="Lisboa" />
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-plane"></i> Ver Voos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-map-marker-alt text-danger"></i> Porto
+                        </h5>
+                        <p class="card-text">
+                            Visite a invicta cidade do Porto, famosa pelo vinho e arquitetura deslumbrante.
+                        </p>
+                        <form asp-controller="Home" asp-action="Search" method="post">
+                            <input type="hidden" name="destino" value="Porto" />
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-plane"></i> Ver Voos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-map-marker-alt text-danger"></i> Faro
+                        </h5>
+                        <p class="card-text">
+                            Relaxe nas praias paradisíacas do Algarve e desfrute do sol português.
+                        </p>
+                        <form asp-controller="Home" asp-action="Search" method="post">
+                            <input type="hidden" name="destino" value="Faro" />
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-plane"></i> Ver Voos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Porquê Escolher AeroTejo -->
+<div class="container my-5">
+    <h2 class="text-center mb-4">Porquê Escolher o AeroTejo?</h2>
+    <div class="row g-4">
+        <div class="col-md-4 text-center">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="fas fa-tags fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Melhores Preços</h5>
+                    <p class="card-text">
+                        Garantimos os preços mais competitivos do mercado para voos e alojamentos.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 text-center">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Reserva Segura</h5>
+                    <p class="card-text">
+                        Sistema de pagamento seguro e proteção total dos seus dados pessoais.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 text-center">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="fas fa-headset fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Suporte 24/7</h5>
+                    <p class="card-text">
+                        Equipa de apoio disponível a qualquer hora para ajudar nas suas viagens.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
