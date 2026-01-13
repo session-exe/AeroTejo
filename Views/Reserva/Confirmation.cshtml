@@ -1,103 +1,79 @@
 @model AeroTejo.Models.Reserva
+@using System.Text.Json
+@using AeroTejo.ViewModels
 
-@{
-    ViewData["Title"] = "Confirmação de Reserva";
-}
-
-<div class="container my-5">
-    <div class="text-center mb-5">
-        <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
-        <h2 class="mt-3">Reserva Confirmada!</h2>
-        <p class="lead">A sua reserva foi efetuada com sucesso.</p>
+<div class="container mt-5">
+    <div class="alert alert-success text-center">
+        <h1><i class="bi bi-check-circle-fill"></i> Reserva Confirmada!</h1>
+        <p class="lead">Obrigado pela sua preferência, @Model.Faturacao?.Nome.</p>
     </div>
 
     <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-file-invoice"></i> Detalhes da Reserva #@Model.Id</h5>
-        </div>
+        <div class="card-header bg-primary text-white">Detalhes da Viagem</div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <h6><i class="fas fa-user"></i> Informações do Cliente</h6>
-                    <p><strong>Nome:</strong> @Model.User?.NomeCompleto</p>
-                    <p><strong>E-mail:</strong> @Model.User?.Email</p>
-                    <p><strong>Telemóvel:</strong> @Model.User?.Telemovel</p>
-                </div>
-
-                <div class="col-md-6">
-                    <h6><i class="fas fa-calendar-alt"></i> Datas</h6>
-                    <p><strong>Data da Reserva:</strong> @Model.DataReserva.ToString("dd/MM/yyyy HH:mm")</p>
-                    <p><strong>Check-in:</strong> @Model.DataCheckIn.ToString("dd/MM/yyyy")</p>
-                    <p><strong>Check-out:</strong> @Model.DataCheckOut.ToString("dd/MM/yyyy")</p>
-                </div>
-            </div>
-
-            <hr>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <h6><i class="fas fa-plane"></i> Voo</h6>
+                    <h5>Voo</h5>
                     <p><strong>Companhia:</strong> @Model.Voo?.Companhia</p>
-                    <p><strong>Rota:</strong> @Model.Voo?.Origem → @Model.Voo?.Destino</p>
-                    <p><strong>Data e Hora:</strong> @Model.Voo?.DataHora.ToString("dd/MM/yyyy HH:mm")</p>
-                    <p><strong>Assento:</strong> @Model.NumeroAssento</p>
-                    <p><strong>Preço:</strong> @Model.Voo?.Preco.ToString("C")</p>
+                    <p><strong>De:</strong> @Model.Voo?.Origem <strong>Para:</strong> @Model.Voo?.Destino</p>
+                    <p><strong>Data:</strong> @Model.Voo?.DataHora.ToString("dd/MM/yyyy HH:mm")</p>
                 </div>
-
-                @if (Model.Hotel != null)
-                {
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-hotel"></i> Hotel</h6>
-                        <p><strong>Nome:</strong> @Model.Hotel.Nome</p>
-                        <p><strong>Localização:</strong> @Model.Hotel.Cidade</p>
-                        <p><strong>Preço por Noite:</strong> @Model.Hotel.PrecoPorNoite.ToString("C")</p>
-                    </div>
-                }
-            </div>
-
-            <hr>
-
-            <div class="row">
-                <div class="col-md-12">
-                    <h6><i class="fas fa-users"></i> Dados dos Passageiros</h6>
-                    <pre class="bg-light p-3 rounded">@Model.DadosPassageiros</pre>
+                <div class="col-md-6">
+                    <h5>Alojamento</h5>
+                    @if (Model.Hotel != null)
+                    {
+                    <p><strong>Hotel:</strong> @Model.Hotel.Nome</p>
+                    <p><strong>Check-in:</strong> @Model.DataCheckIn.ToShortDateString()</p>
+                    <p><strong>Check-out:</strong> @Model.DataCheckOut.ToShortDateString()</p>
+                    }
+                    else
+                    {
+                    <p class="text-muted">Sem hotel selecionado.</p>
+                    }
                 </div>
             </div>
-
-            <hr>
-
-            @if (Model.Faturacao != null)
-            {
-                <div class="row">
-                    <div class="col-md-12">
-                        <h6><i class="fas fa-file-invoice-dollar"></i> Dados de Faturação</h6>
-                        <p><strong>Nome:</strong> @Model.Faturacao.Nome</p>
-                        <p><strong>NIF:</strong> @Model.Faturacao.NIF</p>
-                        <p><strong>Morada:</strong> @Model.Faturacao.Morada</p>
-                    </div>
-                </div>
-
-                <hr>
-            }
-
-            <h4 class="text-end">
-                <i class="fas fa-euro-sign"></i> Valor Total: 
-                <span class="text-success">@Model.ValorTotal.ToString("C")</span>
-            </h4>
         </div>
     </div>
 
-    <div class="alert alert-info">
-        <i class="fas fa-envelope"></i> 
-        Um e-mail de confirmação foi enviado para <strong>@Model.User?.Email</strong> com todos os detalhes da reserva.
+    <div class="card mb-4">
+        <div class="card-header">Lista de Passageiros</div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Documento</th>
+                        <th>Assento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        // DESERIALIZAR O JSON PARA LISTA
+                        List<PassageiroInfo> listaPassageiros = new();
+                        try {
+                            if (!string.IsNullOrEmpty(Model.DadosPassageiros)) {
+                                listaPassageiros = JsonSerializer.Deserialize<List<PassageiroInfo>>(Model.DadosPassageiros) ?? new();
+                            }
+                        } catch { }
+                    }
+
+                    @foreach (var p in listaPassageiros)
+                    {
+                    <tr>
+                        <td>@p.NomeCompleto</td>
+                        <td>@p.NumeroDocumento</td>
+                        <td><span class="badge bg-info text-dark">@p.AssentoSelecionado</span></td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="text-center">
-        <a asp-controller="Reserva" asp-action="MinhasReservas" class="btn btn-primary">
-            <i class="fas fa-list"></i> Ver Minhas Reservas
-        </a>
-        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-            <i class="fas fa-home"></i> Voltar à Página Inicial
-        </a>
+    <div class="d-flex justify-content-between">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Voltar à Home</a>
+        <button onclick="alert('O PDF da fatura seria descarregado agora.')" class="btn btn-danger">
+            <i class="bi bi-file-pdf"></i> Descarregar Fatura PDF
+        </button>
     </div>
 </div>

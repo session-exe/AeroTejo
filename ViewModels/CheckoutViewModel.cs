@@ -2,46 +2,33 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AeroTejo.ViewModels
 {
-    /// <summary>
-    /// ViewModel para o checkout (dados de pagamento e faturação)
-    /// </summary>
     public class CheckoutViewModel
     {
-        // Dados de Pagamento (Mock)
-        [Required(ErrorMessage = "O número do cartão é obrigatório")]
-        [StringLength(19, MinimumLength = 16, ErrorMessage = "Número de cartão inválido")]
-        [Display(Name = "Número do Cartão")]
-        public string NumeroCartao { get; set; } = string.Empty;
-
         [Required(ErrorMessage = "O nome no cartão é obrigatório")]
-        [StringLength(100, ErrorMessage = "O nome não pode exceder 100 caracteres")]
-        [Display(Name = "Nome no Cartão")]
         public string NomeCartao { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "A data de validade é obrigatória")]
-        [StringLength(5, MinimumLength = 5, ErrorMessage = "Formato: MM/AA")]
-        [Display(Name = "Validade (MM/AA)")]
-        public string Validade { get; set; } = string.Empty;
+        [Required(ErrorMessage = "O número do cartão é obrigatório")]
+        [CreditCard(ErrorMessage = "Número de cartão inválido")]
+        public string NumeroCartao { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "O CVV é obrigatório")]
-        [StringLength(4, MinimumLength = 3, ErrorMessage = "CVV inválido")]
-        [Display(Name = "CVV")]
+        [Required(ErrorMessage = "A validade é obrigatória")]
+        [RegularExpression(@"^(0[1-9]|1[0-2])\/?([0-9]{2})$", ErrorMessage = "Formato inválido (MM/AA)")]
+        public string Validade { get; set; } = string.Empty; // Formato MM/AA
+
+        [Required(ErrorMessage = "CVV obrigatório")]
+        [RegularExpression(@"^\d{3,4}$", ErrorMessage = "CVV inválido")]
         public string CVV { get; set; } = string.Empty;
 
-        // Dados de Faturação
-        [Required(ErrorMessage = "O NIF é obrigatório")]
-        [StringLength(20, ErrorMessage = "O NIF não pode exceder 20 caracteres")]
-        [Display(Name = "NIF")]
-        public string NIF { get; set; } = string.Empty;
+        // --- DADOS DE FATURAÇÃO ---
+
+        // CORREÇÃO: NIF agora é opcional (removemos o [Required])
+        [RegularExpression(@"^\d{9}$", ErrorMessage = "O NIF deve ter 9 dígitos")]
+        public string? NIF { get; set; }
 
         [Required(ErrorMessage = "A morada é obrigatória")]
-        [StringLength(250, ErrorMessage = "A morada não pode exceder 250 caracteres")]
-        [Display(Name = "Morada")]
         public string Morada { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "O nome é obrigatório")]
-        [StringLength(100, ErrorMessage = "O nome não pode exceder 100 caracteres")]
-        [Display(Name = "Nome para Faturação")]
+        [Required(ErrorMessage = "O nome para a fatura é obrigatório")]
         public string Nome { get; set; } = string.Empty;
     }
 }

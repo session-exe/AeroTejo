@@ -90,7 +90,7 @@ A aplicação estará disponível em:
 - Password: `admin123`
 
 **Passageiro de Teste:**
-- E-mail: `joao.silva@email.pt`
+- E-mail: joao.silva@email.pt
 - Password: `pass123`
 
 ---

@@ -1,71 +1,65 @@
 @model IEnumerable<AeroTejo.Models.Reserva>
+    @using System.Text.Json
+    @using AeroTejo.ViewModels
 
-@{
-    ViewData["Title"] = "Minhas Reservas";
-}
+    <div class="container mt-5">
+        <h2>Minhas Reservas</h2>
 
-<div class="container my-5">
-    <h2 class="mb-4">
-        <i class="fas fa-calendar-check"></i> Minhas Reservas
-    </h2>
-
-    @if (Model.Any())
+        @if (!Model.Any())
     {
-        <div class="row g-4">
-            @foreach (var reserva in Model)
-            {
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-ticket-alt"></i> Reserva #@reserva.Id</span>
-                            <span class="badge badge-purple">@reserva.DataReserva.ToString("dd/MM/yyyy")</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6><i class="fas fa-plane"></i> Voo</h6>
-                                    <p><strong>@reserva.Voo?.Companhia</strong></p>
-                                    <p>@reserva.Voo?.Origem → @reserva.Voo?.Destino</p>
-                                    <p>@reserva.Voo?.DataHora.ToString("dd/MM/yyyy HH:mm")</p>
-                                    <p><strong>Assento:</strong> @reserva.NumeroAssento</p>
-                                </div>
-
-                                <div class="col-md-3">
-                                    @if (reserva.Hotel != null)
-                                    {
-                                        <h6><i class="fas fa-hotel"></i> Hotel</h6>
-                                        <p><strong>@reserva.Hotel.Nome</strong></p>
-                                        <p>@reserva.Hotel.Cidade</p>
-                                    }
-                                    else
-                                    {
-                                        <p class="text-muted">Sem hotel</p>
-                                    }
-                                </div>
-
-                                <div class="col-md-3 text-end">
-                                    <h6>Valor Total</h6>
-                                    <p class="text-primary fs-4">@reserva.ValorTotal.ToString("C")</p>
-                                    <a asp-action="Confirmation" asp-route-id="@reserva.Id" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-eye"></i> Ver Detalhes
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
+        <div class="alert alert-info">Ainda não tem reservas efetuadas.</div>
     }
     else
     {
-        <div class="alert alert-info text-center">
-            <i class="fas fa-info-circle fa-3x mb-3"></i>
-            <h5>Ainda não tem reservas</h5>
-            <p>Comece a explorar os nossos voos e hotéis para fazer a sua primeira reserva!</p>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">
-                <i class="fas fa-search"></i> Explorar Destinos
-            </a>
+        @foreach (var reserva in Model)
+        {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><strong>Reserva #@reserva.Id</strong> - @reserva.DataReserva.ToShortDateString()</span>
+                <span class="badge bg-success">@reserva.ValorTotal.ToString("C")</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6 class="text-primary">Voo</h6>
+                        <p class="mb-1">@reserva.Voo?.Origem <i class="bi bi-arrow-right"></i> @reserva.Voo?.Destino</p>
+                        <small class="text-muted">@reserva.Voo?.Companhia - @reserva.Voo?.DataHora.ToString("g")</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-primary">Hotel</h6>
+                        @if (reserva.Hotel != null)
+                            {
+                        <p class="mb-1">@reserva.Hotel.Nome</p>
+                        <small class="text-muted">@reserva.DataCheckIn.ToShortDateString() a @reserva.DataCheckOut.ToShortDateString()</small>
+                            }
+                            else
+                            {
+                        <span class="text-muted">Nenhum</span>
+                            }
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-primary">Passageiros</h6>
+                        <ul class="list-unstyled small">
+                            @{
+                                    List<PassageiroInfo> ps = new();
+                                    try {
+                                        if(!string.IsNullOrEmpty(reserva.DadosPassageiros)) {
+                                            ps = JsonSerializer.Deserialize<List<PassageiroInfo>>(reserva.DadosPassageiros) ?? new();
+                                        }
+                                    } catch {}
+                            }
+                            @foreach(var p in ps)
+                                {
+                            <li><i class="bi bi-person"></i> @p.NomeCompleto (Assento: <strong>@p.AssentoSelecionado</strong>)</li>
+                                }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <a asp-action="Confirmation" asp-route-id="@reserva.Id" class="btn btn-sm btn-outline-primary">Ver Detalhes / Fatura</a>
+            </div>
         </div>
+        }
     }
-</div>
+    </div>

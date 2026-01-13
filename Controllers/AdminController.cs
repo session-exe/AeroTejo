@@ -43,11 +43,14 @@ namespace AeroTejo.Controllers
             ViewBag.TotalHoteis = await _context.Hoteis.CountAsync();
             ViewBag.TotalReservas = await _context.Reservas.CountAsync();
             ViewBag.TotalUtilizadores = await _context.Users.CountAsync();
-            ViewBag.ReceitaTotal = await _context.Reservas.SumAsync(r => r.ValorTotal);
+
+            // Correção para evitar erro se não houver reservas (SumAsync pode dar null em alguns contextos, mas geralmente retorna 0)
+            ViewBag.ReceitaTotal = await _context.Reservas.SumAsync(r => (decimal?)r.ValorTotal) ?? 0;
 
             // Destinos mais populares
             var destinosPopulares = await _context.Reservas
                 .Include(r => r.Voo)
+                .Where(r => r.Voo != null) // Garantir que o voo não é nulo
                 .GroupBy(r => r.Voo!.Destino)
                 .Select(g => new { Destino = g.Key, Count = g.Count() })
                 .OrderByDescending(x => x.Count)
@@ -57,18 +60,33 @@ namespace AeroTejo.Controllers
             ViewBag.DestinosPopulares = destinosPopulares;
 
             // Reservas por mês (últimos 12 meses)
+            // CORREÇÃO: Dividido em 2 passos para evitar erro de tradução LINQ
             var dataInicio = DateTime.Now.AddMonths(-12);
-            var reservasPorMes = await _context.Reservas
+
+            // Passo 1: Buscar dados brutos do SQL
+            var dadosBrutos = await _context.Reservas
                 .Where(r => r.DataReserva >= dataInicio)
                 .GroupBy(r => new { r.DataReserva.Year, r.DataReserva.Month })
                 .Select(g => new
                 {
-                    Mes = $"{g.Key.Year}-{g.Key.Month:D2}",
+                    Ano = g.Key.Year,
+                    Mes = g.Key.Month,
                     Count = g.Count(),
                     Receita = g.Sum(r => r.ValorTotal)
                 })
-                .OrderBy(x => x.Mes)
+                .OrderBy(x => x.Ano)
+                .ThenBy(x => x.Mes)
                 .ToListAsync();
+
+            // Passo 2: Formatar a data em memória (Client-side evaluation)
+            var reservasPorMes = dadosBrutos
+                .Select(x => new
+                {
+                    Mes = $"{x.Ano}-{x.Mes:D2}",
+                    x.Count,
+                    x.Receita
+                })
+                .ToList();
 
             ViewBag.ReservasPorMes = reservasPorMes;
 

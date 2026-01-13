@@ -1,29 +1,38 @@
+using AeroTejo.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace AeroTejo.ViewModels
 {
-    /// <summary>
-    /// ViewModel para configuração da reserva (seleção de assento e dados de passageiros)
-    /// </summary>
+    public class PassageiroInfo
+    {
+        [Required(ErrorMessage = "O nome é obrigatório")]
+        public string NomeCompleto { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O documento é obrigatório")]
+        public string NumeroDocumento { get; set; } = string.Empty;
+
+        // CORREÇÃO: Assento agora é por passageiro
+        [Required(ErrorMessage = "Escolha um assento")]
+        public string AssentoSelecionado { get; set; } = string.Empty;
+    }
+
     public class ReservaConfigViewModel
     {
-        [Required(ErrorMessage = "Selecione um assento")]
-        [Display(Name = "Assento")]
-        public int AssentoId { get; set; }
+        public int VooId { get; set; }
+        public Voo? Voo { get; set; }
 
-        [Required(ErrorMessage = "A data de check-in é obrigatória")]
-        [Display(Name = "Data de Check-in")]
+        public int? HotelId { get; set; }
+        public Hotel? Hotel { get; set; }
+
         [DataType(DataType.Date)]
-        public DateTime DataCheckIn { get; set; }
+        public DateTime? DataCheckIn { get; set; }
 
-        [Required(ErrorMessage = "A data de check-out é obrigatória")]
-        [Display(Name = "Data de Check-out")]
         [DataType(DataType.Date)]
-        public DateTime DataCheckOut { get; set; }
+        public DateTime? DataCheckOut { get; set; }
 
-        [Required(ErrorMessage = "Os dados dos passageiros são obrigatórios")]
-        [StringLength(500, ErrorMessage = "Os dados não podem exceder 500 caracteres")]
-        [Display(Name = "Dados dos Passageiros")]
-        public string DadosPassageiros { get; set; } = string.Empty;
+        // Lista de assentos livres para preencher os dropdowns
+        public List<string> AssentosDisponiveis { get; set; } = new();
+
+        public List<PassageiroInfo> Passageiros { get; set; } = new List<PassageiroInfo> { new PassageiroInfo() };
     }
 }
